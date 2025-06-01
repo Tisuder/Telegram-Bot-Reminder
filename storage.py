@@ -1,4 +1,5 @@
 import json
+import aiofiles
 from datetime import datetime
 from models import Reminder, reminders
 
@@ -9,8 +10,10 @@ async def get_db():
     при старте загружает все напоминания из файла в список reminders
     """
     try:
-        with open(DB_FILE, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        async with aiofiles.open(DB_FILE, 'r', encoding='utf-8') as f:
+            text = await f.read()
+            data = json.loads(text)
+            # data = json.load(f)
             for item in data:
                 # ISO-строка -> datetime
                 t = datetime.fromisoformat(item['time'])
@@ -36,5 +39,7 @@ async def update_db(rem_list: list[Reminder]):
             'chat_id': r.chat_id,
             'sent': r.sent
         })
-    with open(DB_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+    text = json.dumps(data, ensure_ascii=False, indent=4)
+    async with aiofiles.open(DB_FILE, 'w', encoding='utf-8') as f:
+        await f.write(text)
+ 

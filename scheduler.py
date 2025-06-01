@@ -18,7 +18,7 @@ async def reminder_loop():
         for r in reminders:
             # отправка напоминания
             if not r.sent and r.time <= now:
-                send_telegram_message(f'Напоминаю, что:\n{r.text}', r.chat_id)
+                await send_telegram_message(f'Напоминаю, что:\n{r.text}', r.chat_id)
                 r.sent = True
                 changed = True
         if changed:
@@ -34,7 +34,7 @@ async def poll_messages():
     last_update_id: int | None = None
 
     while True:
-        data = get_updates(offset=(last_update_id + 1) if last_update_id is not None else None)
+        data = await get_updates(offset=(last_update_id + 1) if last_update_id is not None else None)
         for upd in data.get("result", []):
             uid = upd["update_id"]
             # пропускаем уже прочитанные апдейты
@@ -52,7 +52,7 @@ async def poll_messages():
                 try:
                     dt, body = parse_reminder(text)
                 except ValueError as e:
-                    send_telegram_message(f"Ошибка парсинга: {e}", chat_id)
+                    await send_telegram_message(f"Ошибка парсинга: {e}", chat_id)
                     continue
 
                 # сохраняем напоминание
@@ -61,7 +61,7 @@ async def poll_messages():
                 await update_db(reminders)
 
                 # подтверждаем пользователю
-                send_telegram_message(
+                await send_telegram_message(
                     f"Напоминание установлено на {dt.strftime('%Y-%m-%d %H:%M')}",
                     chat_id
                 )

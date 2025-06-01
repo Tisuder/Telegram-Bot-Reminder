@@ -1,4 +1,4 @@
-import requests
+import httpx
 import re
 from dotenv import load_dotenv
 from os import getenv
@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 load_dotenv()
 BOT_TOKEN = getenv("BOT_TOKEN")
 
-def send_telegram_message(text: str, chat_id: int):
+async def send_telegram_message(text: str, chat_id: int):
     """
     Отправляет текстовое сообщение в заданный чат
     """
@@ -16,10 +16,11 @@ def send_telegram_message(text: str, chat_id: int):
         "chat_id": chat_id,
         "text": text
     }
-    requests.post(url, data=data)
+    async with httpx.AsyncClient() as client:
+        await client.post(url, data=data)
 
 
-def get_updates(offset: int | None = None, timeout: int = 30) -> dict:
+async def get_updates(offset: int | None = None, timeout: int = 30) -> dict:
     """
     Вызываем метод getUpdates с опциональным offset’ом, 
     чтобы получить только новые апдейты.
@@ -28,9 +29,11 @@ def get_updates(offset: int | None = None, timeout: int = 30) -> dict:
     params: dict = {"timeout": timeout}
     if offset is not None:
         params["offset"] = offset
-    resp = requests.get(url, params=params)
-    resp.raise_for_status()
-    return resp.json()
+    client_timeout = httpx.Timeout(timeout=timeout + 5)
+    async with httpx.AsyncClient(timeout=client_timeout) as client:
+        resp = await client.get(url, params=params)
+        resp.raise_for_status()
+        return resp.json()
 
 
 def parse_reminder(text: str) -> tuple[datetime, str]:
